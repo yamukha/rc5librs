@@ -1,0 +1,6 @@
+#implemented and tested for 
+rc5-32/12/16  w/r/b
+
+# used links
+https://www.geeksforgeeks.org/rc5-encryption-algorithm/
+https://packetstormsecurity.com/files/20519/rc5ref.c.html
