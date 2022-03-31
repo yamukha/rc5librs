@@ -2,5 +2,5 @@
 
 Rust library implementation of RC5 
 
-#to teset
+#to test
 cargo test --release
