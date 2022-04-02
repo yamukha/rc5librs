@@ -92,7 +92,6 @@ pub fn encode(key: Vec<u8>, plaintext: Vec<u8>, r: u32, w: u32, p: u32, q: u32) 
     let ak = aligne_key(key.clone(), w);
     let sk = sub_keys(p, q, r);
     let s = sub_keys_mix(key, ak, sk, r, w);
-
     a = a + s[0];
     b = b + s[1];
 
@@ -144,6 +143,7 @@ pub fn decode(key: Vec<u8>, plaintext: Vec<u8>, r: u32, w: u32, p: u32, q: u32) 
 #[cfg(test)]
 mod tests {
 use super::*;
+use test_log::test;
 
 const W32: u32 = 32; // machine word as half of block
 const R12: u32 = 12; // rounds, if zero no encoding
@@ -152,6 +152,7 @@ const Q32: u32 = 0x9e3779b9; // magic number Q for Q =32 as Qw = Odd((e - 2) * 2
 
     #[test]
     fn encode_a() {
+        let _ = env_logger::builder().is_test(true).try_init();
         let key = vec![
             0x00, 0x01, 0x02, 0x03, 0x04, 0x05, 0x06, 0x07, 0x08, 0x09, 0x0A, 0x0B, 0x0C, 0x0D,
             0x0E, 0x0F,
@@ -160,6 +161,7 @@ const Q32: u32 = 0x9e3779b9; // magic number Q for Q =32 as Qw = Odd((e - 2) * 2
         let ct = vec![0x2D, 0xDC, 0x14, 0x9B, 0xCF, 0x08, 0x8B, 0x9E];
         let res = encode(key.clone(), pt, R12, W32, P32, Q32);
         assert!(&ct[..] == &res[..]);
+        dbg!("done");
     }
 
     #[test]
@@ -197,4 +199,5 @@ const Q32: u32 = 0x9e3779b9; // magic number Q for Q =32 as Qw = Odd((e - 2) * 2
         let res = decode(key, ct, R12, W32, P32, Q32);
         assert!(&pt[..] == &res[..]);
     }
+
 }
