@@ -148,7 +148,7 @@ use test_log::test;
 const W32: u32 = 32; // machine word as half of block
 const R12: u32 = 12; // rounds, if zero no encoding
 const P32: u32 = 0xb7e15163; // magic nunber P for w =32 as Pw = Odd((f - 1) * 2^W;
-const Q32: u32 = 0x9e3779b9; // magic number Q for Q =32 as Qw = Odd((e - 2) * 2^W;
+const Q32: u32 = 0x9e3779b9; // magic number Q for W =32 as Qw = Odd((e - 2) * 2^W;
 
     #[test]
     fn encode_a() {
