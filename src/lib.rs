@@ -1,17 +1,16 @@
-
 use std::cmp;
 
 //#define ROTL(x,y) (((x)<<(y&(w-1))) | ((x)>>(w-(y&(w-1)))))
 fn rotl(a: u32, w: u32, offset: u32) -> u32 {
-    let r1 = a << offset;
-    let r2 = a >> (w - offset);
+    let r1 = a.rotate_left(offset);
+    let r2 = a.rotate_right((w as i32 - offset as i32) as u32); // let r2 = a >> ((w as i32 - offset as i32) as u32);
     r1 | r2
 }
 
 //#define ROTR(x,y) (((x)>>(y&(w-1))) | ((x)<<(w-(y&(w-1)))))
 fn rotr(a: u32, w: u32, offset: u32) -> u32 {
-    let r1 = a >> offset;
-    let r2 = a << (w - offset);
+    let r1 = a.rotate_right(offset);
+    let r2 = a.rotate_left((w as i32 - offset as i32) as u32); //let r2 = a << (w - offset);
     r1 | r2
 }
 
@@ -38,7 +37,7 @@ fn sub_keys(p: u32, q: u32, r: u32) -> Vec<u32> {
     s[0] = p;
     for i in 1..t {
         //for (i = 1; i < t; i++)
-        s[i as usize] = s[(i as usize - 1)] + q;
+        s[i as usize] = ((s[(i as usize - 1)]) as u64 + q as u64) as u32;
     }
     s
 }
@@ -57,9 +56,13 @@ fn sub_keys_mix(key: Vec<u8>, mut l: Vec<u32>, mut s: Vec<u32>, r: u32, w: u32) 
 
     for _k in 0..n {
         // for (int k = 0; k < n; k++)
-        s[i as usize] = rotl(s[i as usize] + x + y, w, 3);
+        s[i as usize] = rotl((s[i as usize] as u64 + x as u64 + y as u64) as u32, w, 3);
         x = s[i as usize];
-        l[j as usize] = rotl(l[j] + x + y, w, (x + y) as u32);
+        l[j as usize] = rotl(
+            (l[j] as u64 + x as u64 + y as u64) as u32,
+            w,
+            (x as u64 + y as u64) as u32,
+        );
         y = l[j as usize];
         i = (i + 1) % t;
         j = (j + 1) % c as usize;
@@ -92,19 +95,27 @@ pub fn encode(key: Vec<u8>, plaintext: Vec<u8>, r: u32, w: u32, p: u32, q: u32) 
     let ak = aligne_key(key.clone(), w);
     let sk = sub_keys(p, q, r);
     let s = sub_keys_mix(key, ak, sk, r, w);
-    a = a + s[0];
-    b = b + s[1];
+    a = (a as u64 + s[0] as u64) as u32;
+    b = (b as u64 + s[1] as u64) as u32;
 
     for i in 1..r + 1 {
         // for (int i = 1; i < R + 1; i++) {
-        a = rotl(a ^ b, w, b) + s[2 * i as usize];
-        b = rotl(b ^ a, w, a) + s[2 * i as usize + 1];
+        a = ((rotl(a ^ b, w, b)) as u64 + s[2 * i as usize] as u64) as u32;
+        b = ((rotl(b ^ a, w, a)) as u64 + s[2 * i as usize + 1] as u64) as u32;
     }
 
     let mut ciphertext = u32vec(a);
     let cb = u32vec(b);
     ciphertext.extend(cb);
     ciphertext
+}
+
+fn sub(b: u32, a: u32) -> u32 {
+    if b >= a {
+        b - a
+    } else {
+        !(a - b) + 1
+    }
 }
 
 /*
@@ -126,13 +137,15 @@ pub fn decode(key: Vec<u8>, plaintext: Vec<u8>, r: u32, w: u32, p: u32, q: u32) 
     let mut i = r;
     while i > 0 {
         //for (int i = R; i > 0; i--) {
-        b = rotr(b - s[2 * i as usize + 1], w, a) ^ a;
-        a = rotr(a - s[2 * i as usize], w, b) ^ b;
+        let db = sub(b, s[2 * i as usize + 1]);
+        let da = sub(a, s[2 * i as usize]);
+        b = rotr(db, w, a) ^ a; // b - s[2 * i as usize + 1]
+        a = rotr(da, w, b) ^ b; // a - s[2 * i as usize]
         i = i - 1;
     }
 
-    b = b - s[1];
-    a = a - s[0];
+    b = sub(b, s[1]); // b = b - s[1];
+    a = sub(a, s[0]); //a = a - s[0];
 
     let mut ciphertext = u32vec(a);
     let cb = u32vec(b);
@@ -142,13 +155,13 @@ pub fn decode(key: Vec<u8>, plaintext: Vec<u8>, r: u32, w: u32, p: u32, q: u32) 
 
 #[cfg(test)]
 mod tests {
-use super::*;
-use test_log::test;
+    use super::*;
+    use test_log::test;
 
-const W32: u32 = 32; // machine word as half of block
-const R12: u32 = 12; // rounds, if zero no encoding
-const P32: u32 = 0xb7e15163; // magic nunber P for w =32 as Pw = Odd((f - 1) * 2^W;
-const Q32: u32 = 0x9e3779b9; // magic number Q for W =32 as Qw = Odd((e - 2) * 2^W;
+    const W32: u32 = 32; // machine word as half of block
+    const R12: u32 = 12; // rounds, if zero no encoding
+    const P32: u32 = 0xb7e15163; // magic nunber P for w =32 as Pw = Odd((f - 1) * 2^W;
+    const Q32: u32 = 0x9e3779b9; // magic number Q for w =32 as Qw = Odd((e - 2) * 2^W;
 
     #[test]
     fn encode_a() {
@@ -161,6 +174,7 @@ const Q32: u32 = 0x9e3779b9; // magic number Q for W =32 as Qw = Odd((e - 2) * 2
         let ct = vec![0x2D, 0xDC, 0x14, 0x9B, 0xCF, 0x08, 0x8B, 0x9E];
         let res = encode(key.clone(), pt, R12, W32, P32, Q32);
         assert!(&ct[..] == &res[..]);
+        let rs = decode(key, ct, R12, W32, P32, Q32);
         dbg!("done");
     }
 
@@ -199,5 +213,4 @@ const Q32: u32 = 0x9e3779b9; // magic number Q for W =32 as Qw = Odd((e - 2) * 2
         let res = decode(key, ct, R12, W32, P32, Q32);
         assert!(&pt[..] == &res[..]);
     }
-
 }

@@ -16,4 +16,4 @@ tracing = {version = "0.1", default-features = false}
 tracing-subscriber = {version = "0.3", default-features = false, features = ["env-filter", "fmt"]}
 
 [profile.dev]
-overflow-checks = false
+# overflow-checks = false
