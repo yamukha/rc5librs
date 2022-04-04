@@ -174,7 +174,6 @@ mod tests {
         let ct = vec![0x2D, 0xDC, 0x14, 0x9B, 0xCF, 0x08, 0x8B, 0x9E];
         let res = encode(key.clone(), pt, R12, W32, P32, Q32);
         assert!(&ct[..] == &res[..]);
-        let rs = decode(key, ct, R12, W32, P32, Q32);
         dbg!("done");
     }
 
